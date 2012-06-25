@@ -80,6 +80,8 @@ sub handler
 		my @rewrite = $f->r->dir_config->get('ProxyHTMLRewrite');
 		my $contenttype = $f->r->dir_config->get('ProxyHTMLContentType');
 		$contenttype ||= '(text\/javascript|text\/html|text\/css|text\/xml|application\/.*javascript|application\/.*xml)';
+		my $badcontenttype = $f->r->dir_config->get('ProxyHTMLExcludeContentType');
+		$badcontenttype ||= '(application\/vnd\.openxml)';
 
 		my $ct = $f->ctx;
 		$ct->{data} = '';
@@ -90,6 +92,7 @@ sub handler
 			push(@{$ct->{rewrite}}, $p);
 		}
 		$ct->{contenttype} = $contenttype;
+		$ct->{badcontenttype} = $badcontenttype;
 		$f->ctx($ct);
 	}
 	# Thing we do on all invocations
@@ -107,7 +110,7 @@ sub handler
 		my $c_encoding = $f->r->headers_out->{'Content-Encoding'} || '';
 		my $ct = $f->r->headers_out->{'Content-type'} || '';
 	       	# if Accept-Encoding: gzip,deflate try to uncompress
-		if ( ($c_encoding =~ /gzip|deflate/) && ($ct =~ /$ctx->{contenttype}/is) ) {
+		if ( ($c_encoding =~ /gzip|deflate/) && ($ct =~ /$ctx->{contenttype}/is) && ($ct !~ /$ctx->{badcontenttype}/is) ) {
 			if ($debug) {
 				Apache2::ServerRec::warn("[ModProxyPerlHtml] Uncompressing $ct, Content-Encoding: $c_encoding\n");
 			}
@@ -135,7 +138,7 @@ sub handler
 			$f->r->headers_out->set('Refresh' => $refresh);
 		}
 		
-		if ($content_type =~ /$ctx->{contenttype}/is) {
+		if ( ($content_type =~ /$ctx->{contenttype}/is) && ($content_type !~ /$ctx->{badcontenttype}/is) ) {
 			if ($debug) {
 				Apache2::ServerRec::warn("[ModProxyPerlHtml] Content-type '$content_type' match: /$ctx->{contenttype}/is\n");
 			}
@@ -151,6 +154,7 @@ sub handler
 				&rewrite_content(\$ctx->{data}, $match, $substitute, $parsed_uri);
 			}
 		}
+
 		# Compress again data if require
 		if (($a_encoding =~ /gzip|deflate/) && ($c_encoding =~ /gzip|deflate/)) {
 			if ($debug) {
@@ -283,7 +287,7 @@ The replacement capability concern only the following HTTP content type:
 	application/.*javascript
 	application/.*xml
 
-other kind of file, will be left untouched (or see ProxyHTMLContentType).
+other kind of file, will be left untouched (or see ProxyHTMLContentType and ProxyHTMLExcludeContentType).
 
 =head1 AVAIBILITY
 
@@ -377,6 +381,19 @@ If you know exactly what you are doing by editing this regexp fill free to add
 the missing Content-Type that must be parsed by ModProxyPerlHTML. Otherwise drop
 me a line with the content type, I will give you the rigth expression. If you don't
 know about the content type, with FireFox simply type Ctrl+i on the web page.
+
+Some MS Office files may conflict with the above ProxyHTMLContentType regex like .docx or .xlsx
+files. The result is that there could suffer of replacement inside and the file will be corrupted.
+to prevent this you have the ProxyHTMLExcludeContentType configuration directive to exclude certain
+content-type. Here is the default value:
+ 
+	ProxyHTMLExcludeContentType	(application\/vnd\.openxml)
+
+If you have problem with other content-type, use this directive. For example, as follow:
+
+	ProxyHTMLExcludeContentType	(application\/vnd\.openxml|application\/vnd\..*text)
+
+this regex will prevent any MS Office XML or text document to be parsed.
 
 =head1 LIVE EXAMPLE
 
