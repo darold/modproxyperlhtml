@@ -28,7 +28,7 @@ use constant BUFF_LEN => 8000;
 use Apache2::ServerRec;
 use Apache2::URI;
 
-$Apache2::ModProxyPerlHtml::VERSION = '3.2';
+$Apache2::ModProxyPerlHtml::VERSION = '3.3';
 
 %Apache2::ModProxyPerlHtml::linkElements = (
 	'a'       => ['href'],

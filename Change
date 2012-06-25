@@ -1,3 +1,13 @@
+25 Jun 2012 - Version 3.3
+
+	- Fix corruption of openxml MS Office document (docx, dotx, potx, ppsx,
+	  pptx, xlsx and xltx). Thanks to Stefano Colanzi for the report.
+	- Add new directive ProxyHTMLExcludeContentType with default value to
+	  regex: (application\/vnd\.openxml) to fix the previous issue and let
+	  users customize the content-type exclusion regex.
+	- Add development code to github.com new repository:
+		https://github.com/darold/modproxyperlhtml
+
 21 Dec 2011 - Version 3.2
 
 	- Fix new major issue during inflate/deflate compressed http content
