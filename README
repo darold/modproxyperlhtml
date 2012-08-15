@@ -83,6 +83,9 @@ APACHE CONFIGURATION
         <Location /webcal/>
             ...
             PerlAddVar ProxyHTMLRewrite "/logo/image1.png /images/logo1.png"
+            # Or more complicated to handle space in the code as space is the
+            # pattern / substitution separator character internally in ModProxyPerlHtml
+            PerlAddVar ProxyHTMLRewrite "ajaxurl\\s*=\\s*'/blog ajaxurl = '/www2.mydom.org/blog"
             ...
         </Location>
 
@@ -203,7 +206,7 @@ BUGS
     stable. Please send me email to submit bug reports or feature requests.
 
 COPYRIGHT
-    Copyright (c) 2005-2011 - Gilles Darold
+    Copyright (c) 2005-2012 - Gilles Darold
 
     All rights reserved. This program is free software; you may redistribute
     it and/or modify it under the same terms as Perl itself.

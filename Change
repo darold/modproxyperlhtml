@@ -1,3 +1,16 @@
+15 Aug 2012 - Version 3.4
+
+	- Add support of space characters in ProxyHTMLURLMap an ProxyHTMLRewrite
+	  pattern definition. The issue reported by Steffen Rheinhold occurs
+	  when you want to rewrite some HTML code with space character in it as
+	  this is the separator character used to set the pattern to find at
+	  one side and the string to substitue at the other side. For exemple
+	  writing such a replacement:
+
+		PerlAddVar ProxyHTMLRewrite "ajaxurl\s*=\s*'/blog' ajaxurl = '/www2.domain.org/blog'" 
+
+	  is now fully supported.
+
 25 Jun 2012 - Version 3.3
 
 	- Fix corruption of openxml MS Office document (docx, dotx, potx, ppsx,

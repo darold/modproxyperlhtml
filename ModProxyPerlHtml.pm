@@ -3,7 +3,7 @@
 # Name     : ModProxyPerlHtml.pm
 # Language : perl 5
 # Authors  : Gilles Darold, gilles at darold dot net
-# Copyright: Copyright (c) 2005-2011: Gilles Darold - All rights reserved -
+# Copyright: Copyright (c) 2005-2012: Gilles Darold - All rights reserved -
 # Description : This mod_perl2 module is a replacement for mod_proxy_html.c
 #		with far better URL HTML rewriting.
 # Usage    : See documentation in this file with perldoc.
@@ -28,7 +28,7 @@ use constant BUFF_LEN => 8000;
 use Apache2::ServerRec;
 use Apache2::URI;
 
-$Apache2::ModProxyPerlHtml::VERSION = '3.3';
+$Apache2::ModProxyPerlHtml::VERSION = '3.4';
 
 %Apache2::ModProxyPerlHtml::linkElements = (
 	'a'       => ['href'],
@@ -128,7 +128,7 @@ sub handler
 		my $refresh = $f->r->headers_out->{'Refresh'};
 		if ($refresh) {
 			foreach my $p (@{$ctx->{pattern}}) {
-				my ($match, $substitute) = split(/[\s\t]+/, $p);
+				my ($match, $substitute) = split(/[\s\t]+/, $p, 2);
 				if ($refresh =~ s#([^\/:])$match#$1$substitute#) {
 					if ($debug) {
 						Apache2::ServerRec::warn("[ModProxyPerlHtml] Refresh header match '$match', substituted by: /$substitute/\n");
@@ -144,13 +144,13 @@ sub handler
 			}
 			# Replace links if pattern match
 			foreach my $p (@{$ctx->{pattern}}) {
-				my ($match, $substitute) = split(/[\s\t]+/, $p);
+				my ($match, $substitute) = split(/[\s\t]+/, $p, 2);
 				&link_replacement(\$ctx->{data}, $match, $substitute, $parsed_uri);
 
 			}
 			# Rewrite code if rewrite pattern match
 			foreach my $p (@{$ctx->{rewrite}}) {
-				my ($match, $substitute) = split(/[\s\t]+/, $p);
+				my ($match, $substitute) = split(/[\s\t]+/, $p, 2);
 				&rewrite_content(\$ctx->{data}, $match, $substitute, $parsed_uri);
 			}
 		}
@@ -350,6 +350,9 @@ follow:
     <Location /webcal/>
         ...
         PerlAddVar ProxyHTMLRewrite "/logo/image1.png /images/logo1.png"
+	# Or more complicated to handle space in the code as space is the
+	# pattern / substitution separator character internally in ModProxyPerlHtml
+	PerlAddVar ProxyHTMLRewrite "ajaxurl\\s*=\\s*'/blog ajaxurl = '/www2.mydom.org/blog"
         ...
     </Location>
 
@@ -468,7 +471,7 @@ requests.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2011 - Gilles Darold
+Copyright (c) 2005-2012 - Gilles Darold
 
 All rights reserved.  This program is free software; you may redistribute
 it and/or modify it under the same terms as Perl itself.
