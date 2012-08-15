@@ -352,7 +352,7 @@ follow:
         PerlAddVar ProxyHTMLRewrite "/logo/image1.png /images/logo1.png"
 	# Or more complicated to handle space in the code as space is the
 	# pattern / substitution separator character internally in ModProxyPerlHtml
-	PerlAddVar ProxyHTMLRewrite "ajaxurl\\s*=\\s*'/blog ajaxurl = '/www2.mydom.org/blog"
+	PerlAddVar ProxyHTMLRewrite "ajaxurl[\s\t]*=[\s\t]*'/blog' ajaxurl = '/www2.mydom.org/blog'"
         ...
     </Location>
 

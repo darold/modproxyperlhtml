@@ -2,14 +2,15 @@
 
 	- Add support of space characters in ProxyHTMLURLMap an ProxyHTMLRewrite
 	  pattern definition. The issue reported by Steffen Rheinhold occurs
-	  when you want to rewrite some HTML code with space character in it as
-	  this is the separator character used to set the pattern to find at
-	  one side and the string to substitue at the other side. For exemple
-	  writing such a replacement:
+	  when you want to rewrite some HTML code with space character in it.
+	  As space is the separator character used between the search pattern
+	  and the string to substitute. For exemple writing such a replacement:
 
 		PerlAddVar ProxyHTMLRewrite "ajaxurl\s*=\s*'/blog' ajaxurl = '/www2.domain.org/blog'" 
 
-	  is now fully supported.
+	  is now fully supported, before it should break after the first space
+	  of the replacement string and using '\s' in this replacement string
+	  will not solve the problem as it still write 's' instead of a space. 
 
 25 Jun 2012 - Version 3.3
 
