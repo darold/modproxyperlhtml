@@ -6,7 +6,7 @@
 	  As space is the separator character used between the search pattern
 	  and the string to substitute. For exemple writing such a replacement:
 
-		PerlAddVar ProxyHTMLRewrite "ajaxurl\s*=\s*'/blog' ajaxurl = '/www2.domain.org/blog'" 
+		PerlAddVar ProxyHTMLRewrite "ajaxurl[\t\s]+=[\t\s]+'/blog' ajaxurl = '/www2.domain.org/blog'" 
 
 	  is now fully supported, before it should break after the first space
 	  of the replacement string and using '\s' in this replacement string
