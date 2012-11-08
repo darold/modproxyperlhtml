@@ -139,6 +139,18 @@ sub handler
 			}
 			$f->r->headers_out->set('Refresh' => $refresh);
 		}
+		my $referer = $f->r->headers_out->{'Referer'};
+		if ($referer) {
+			foreach my $p (@{$ctx->{pattern}}) {
+				my ($match, $substitute) = split(/[\s\t]+/, $p, 2);
+				if ($referer =~ s#([^\/:])$match#$1$substitute#) {
+					if ($debug) {
+						Apache2::ServerRec::warn("[ModProxyPerlHtml] Referer header match '$match', substituted by: /$substitute/\n");
+					}
+				}
+			}
+			$f->r->headers_out->set('Referer' => $referer);
+		}
 		
 		if ( ($content_type =~ /$ctx->{contenttype}/is) && ($content_type !~ /$ctx->{badcontenttype}/is) ) {
 			if ($debug) {
@@ -277,8 +289,8 @@ Apache2::ModProxyPerlHtml is very simple and has far better parsing/replacement
 of URL than the original C code. It also support meta tag, CSS, and javascript
 URL rewriting and can be use with compressed HTTP. You can now replace any code
 by other, like changing images name or anything else. mod_proxy_html can't do
-all of that. Since release 3.0 ModProxyPerlHtml is also able to rewrite HTTP
-headers with refresh url redirection. 
+all of that. Since release 3.x ModProxyPerlHtml is also able to rewrite HTTP
+headers with Refresh url redirection and Referer. 
 
 The replacement capability concern only the following HTTP content type:
 

@@ -9,8 +9,8 @@ DESCRIPTION
     meta tag, CSS, and javascript URL rewriting and can be use with
     compressed HTTP. You can now replace any code by other, like changing
     images name or anything else. mod_proxy_html can't do all of that. Since
-    release 3.0 ModProxyPerlHtml is also able to rewrite HTTP headers with
-    refresh url redirection.
+    release 3.x ModProxyPerlHtml is also able to rewrite HTTP headers with
+    Refresh url redirection and Referer.
 
     The replacement capability concern only the following HTTP content type:
 
