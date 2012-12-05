@@ -392,7 +392,7 @@ ProxyHTMLContentType configuration directive to redefined the HTTP Content Type
 that should be parsed by ModProxyPerlHTML. The default value is the following
 Perl regular expresssion:
 
-	ProxyHTMLContentType    (text\/javascript|text\/html|text\/css|text\/xml|application\/.*javascript|application\/.*xml)
+	PerlAddVar ProxyHTMLContentType    (text\/javascript|text\/html|text\/css|text\/xml|application\/.*javascript|application\/.*xml)
 
 If you know exactly what you are doing by editing this regexp fill free to add
 the missing Content-Type that must be parsed by ModProxyPerlHTML. Otherwise drop
