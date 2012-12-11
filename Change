@@ -1,3 +1,10 @@
+11 Dec 2012 - Version 3.5
+
+	- Fix documentation about ProxyHTMLContentType, PerlAddVar was missing.
+	  Thanks to cepelessar for the report.
+	- Allow rewrite of Referer value into the HTTP header. Thanks to snadal
+	  for the feature request.
+
 15 Aug 2012 - Version 3.4
 
 	- Add support of space characters in ProxyHTMLURLMap an ProxyHTMLRewrite
