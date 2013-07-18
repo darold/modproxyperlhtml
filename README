@@ -137,6 +137,19 @@ APACHE CONFIGURATION
 
     this regex will prevent any MS Office XML or text document to be parsed.
 
+    Some javascript libraries like JQuery are wrongly rewritten by
+    ModProxyPerlHtml. The problem is that those javascript code include some
+    code and regex that are detected as links and rewritten. The only way to
+    fix that is to exclude those files from the URL rewritter by using the
+    "ProxyHTMLExcludeUri" configuration directive. For example:
+
+            ProxyHTMLExcludeUri     jquery.min.js$
+            ProxyHTMLExcludeUri     ^.*\/jquery-lib\/.*$
+
+    Any downloaded URI that contains the given regex will be returned asis
+    without rewritting. You can use this directive multiple time like above
+    to match different cases.
+
 LIVE EXAMPLE
     Here is the reverse proxy configuration I use to give access to Internet
     users to internal applications:

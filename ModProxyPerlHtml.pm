@@ -84,6 +84,7 @@ sub handler
 		$contenttype ||= '(text\/javascript|text\/html|text\/css|text\/xml|application\/.*javascript|application\/.*xml)';
 		my $badcontenttype = $f->r->dir_config->get('ProxyHTMLExcludeContentType');
 		$badcontenttype ||= '(application\/vnd\.openxml)';
+		my @exclude = $f->r->dir_config->get('ProxyHTMLExcludeUri');
 
 		my $ct = $f->ctx;
 		$ct->{data} = '';
@@ -95,6 +96,9 @@ sub handler
 		}
 		$ct->{contenttype} = $contenttype;
 		$ct->{badcontenttype} = $badcontenttype;
+		foreach my $u (@exclude) {
+			push(@{$ct->{excluded}}, $u);
+		}
 		$f->ctx($ct);
 	}
 	# Thing we do on all invocations
@@ -106,86 +110,97 @@ sub handler
 	}
 	# Thing we do at end
 	if ($f->seen_eos) { 
-		# Skip content that should not have links
 		my $parsed_uri = $f->r->construct_url();
 		my $a_encoding = $f->r->headers_in->{'Accept-Encoding'} || '';
 		my $c_encoding = $f->r->headers_out->{'Content-Encoding'} || '';
 		my $ct = $f->r->headers_out->{'Content-type'} || '';
-	       	# if Accept-Encoding: gzip,deflate try to uncompress
-		if ( ($c_encoding =~ /gzip|deflate/) && ($ct =~ /$ctx->{contenttype}/is) && ($ct !~ /$ctx->{badcontenttype}/is) ) {
-			if ($debug) {
-				Apache2::ServerRec::warn("[ModProxyPerlHtml] Uncompressing $ct, Content-Encoding: $c_encoding\n");
-			}
-			use IO::Uncompress::AnyInflate qw(anyinflate $AnyInflateError) ;
-			my $output = '';
-			anyinflate  \$ctx->{data} => \$output or print STDERR "anyinflate failed: $AnyInflateError\n";
-			if ($ctx->{data} ne $output) {
-				$ctx->{data} = $output;
+
+		# Only proceed URLs that are not excluded from rewritter
+		if ( ($#{$ctx->{excluded}} >= 0) && !grep($parsed_uri =~ /$_/i, @{$ctx->{excluded}}) ) {
+
+			# if Accept-Encoding: gzip,deflate try to uncompress
+			if ( ($c_encoding =~ /gzip|deflate/) && ($ct =~ /$ctx->{contenttype}/is) && ($ct !~ /$ctx->{badcontenttype}/is) ) {
+				if ($debug) {
+					Apache2::ServerRec::warn("[ModProxyPerlHtml] Uncompressing $ct, Content-Encoding: $c_encoding\n");
+				}
+				use IO::Uncompress::AnyInflate qw(anyinflate $AnyInflateError) ;
+				my $output = '';
+				anyinflate  \$ctx->{data} => \$output or print STDERR "anyinflate failed: $AnyInflateError\n";
+				if ($ctx->{data} ne $output) {
+					$ctx->{data} = $output;
+				} else {
+					$c_encoding = '';
+				}
 			} else {
 				$c_encoding = '';
 			}
-		} else {
-			$c_encoding = '';
-		}
-		my $refresh = $f->r->headers_out->{'Refresh'};
-		if ($refresh) {
-			foreach my $p (@{$ctx->{pattern}}) {
-				my ($match, $substitute) = split(/[\s\t]+/, $p, 2);
-				if ($refresh =~ s#([^\/:])$match#$1$substitute#) {
-					if ($debug) {
-						Apache2::ServerRec::warn("[ModProxyPerlHtml] Refresh header match '$match', substituted by: /$substitute/\n");
+
+			# Rewrite refresh command in header
+			my $refresh = $f->r->headers_out->{'Refresh'};
+			if ($refresh) {
+				foreach my $p (@{$ctx->{pattern}}) {
+					my ($match, $substitute) = split(/[\s\t]+/, $p, 2);
+					if ($refresh =~ s#([^\/:])$match#$1$substitute#) {
+						if ($debug) {
+							Apache2::ServerRec::warn("[ModProxyPerlHtml] Refresh header match '$match', substituted by: /$substitute/\n");
+						}
 					}
 				}
+				$f->r->headers_out->set('Refresh' => $refresh);
 			}
-			$f->r->headers_out->set('Refresh' => $refresh);
-		}
-		my $referer = $f->r->headers_out->{'Referer'};
-		if ($referer) {
-			foreach my $p (@{$ctx->{pattern}}) {
-				my ($match, $substitute) = split(/[\s\t]+/, $p, 2);
-				if ($referer =~ s#([^\/:])$match#$1$substitute#) {
-					if ($debug) {
-						Apache2::ServerRec::warn("[ModProxyPerlHtml] Referer header match '$match', substituted by: /$substitute/\n");
+
+			# Rewrite referer in header
+			my $referer = $f->r->headers_out->{'Referer'};
+			if ($referer) {
+				foreach my $p (@{$ctx->{pattern}}) {
+					my ($match, $substitute) = split(/[\s\t]+/, $p, 2);
+					if ($referer =~ s#([^\/:])$match#$1$substitute#) {
+						if ($debug) {
+							Apache2::ServerRec::warn("[ModProxyPerlHtml] Referer header match '$match', substituted by: /$substitute/\n");
+						}
 					}
 				}
+				$f->r->headers_out->set('Referer' => $referer);
 			}
-			$f->r->headers_out->set('Referer' => $referer);
-		}
-		
-		if ( ($content_type =~ /$ctx->{contenttype}/is) && ($content_type !~ /$ctx->{badcontenttype}/is) ) {
-			if ($debug) {
-				Apache2::ServerRec::warn("[ModProxyPerlHtml] Content-type '$content_type' match: /$ctx->{contenttype}/is\n");
-			}
-			# Replace links if pattern match
-			foreach my $p (@{$ctx->{pattern}}) {
-				my ($match, $substitute) = split(/[\s\t]+/, $p, 2);
-				&link_replacement(\$ctx->{data}, $match, $substitute, $parsed_uri);
+			
+			# Only parse content that should have hyperlinks to rewrite
+			if ( ($content_type =~ /$ctx->{contenttype}/is) && ($content_type !~ /$ctx->{badcontenttype}/is) ) {
+				if ($debug) {
+					Apache2::ServerRec::warn("[ModProxyPerlHtml] Content-type '$content_type' match: /$ctx->{contenttype}/is\n");
+				}
+				# Replace links if pattern match
+				foreach my $p (@{$ctx->{pattern}}) {
+					my ($match, $substitute) = split(/[\s\t]+/, $p, 2);
+					&link_replacement(\$ctx->{data}, $match, $substitute, $parsed_uri);
 
+				}
+				# Rewrite code if rewrite pattern match
+				foreach my $p (@{$ctx->{rewrite}}) {
+					my ($match, $substitute) = split(/[\s\t]+/, $p, 2);
+					&rewrite_content(\$ctx->{data}, $match, $substitute, $parsed_uri);
+				}
 			}
-			# Rewrite code if rewrite pattern match
-			foreach my $p (@{$ctx->{rewrite}}) {
-				my ($match, $substitute) = split(/[\s\t]+/, $p, 2);
-				&rewrite_content(\$ctx->{data}, $match, $substitute, $parsed_uri);
+
+			# Compress again data if require
+			if (($a_encoding =~ /gzip|deflate/) && ($c_encoding =~ /gzip|deflate/)) {
+				if ($debug) {
+					Apache2::ServerRec::warn("[ModProxyPerlHtml] Compressing output as Content-Encoding: $c_encoding\n");
+				}
+				if ($c_encoding =~ /gzip/) {
+					use IO::Compress::Gzip qw(gzip $GzipError) ;
+					my $output = '';
+					my $status = gzip \$ctx->{data} => \$output or die "gzip failed: $GzipError\n";
+					$ctx->{data} = $output;
+				} elsif ($c_encoding =~ /deflate/) {
+					use IO::Compress::Deflate qw(deflate $DeflateError) ;
+					my $output = '';
+					my $status = deflate \$ctx->{data} => \$output or die "deflate failed: $DeflateError\n";
+					$ctx->{data} = $output;
+				}
 			}
 		}
 
-		# Compress again data if require
-		if (($a_encoding =~ /gzip|deflate/) && ($c_encoding =~ /gzip|deflate/)) {
-			if ($debug) {
-				Apache2::ServerRec::warn("[ModProxyPerlHtml] Compressing output as Content-Encoding: $c_encoding\n");
-			}
-			if ($c_encoding =~ /gzip/) {
-				use IO::Compress::Gzip qw(gzip $GzipError) ;
-				my $output = '';
-				my $status = gzip \$ctx->{data} => \$output or die "gzip failed: $GzipError\n";
-				$ctx->{data} = $output;
-			} elsif ($c_encoding =~ /deflate/) {
-				use IO::Compress::Deflate qw(deflate $DeflateError) ;
-				my $output = '';
-				my $status = deflate \$ctx->{data} => \$output or die "deflate failed: $DeflateError\n";
-				$ctx->{data} = $output;
-			}
-		}
+		# Apply any change
 		$f->ctx($ctx);
 
 		# Dump datas out
@@ -198,6 +213,9 @@ sub handler
 			$ctx->{data} = '';
 			$ctx->{pattern} = ();
 			$ctx->{rewrite} = ();
+			$ctx->{excluded} = ();
+			$ctx->{contenttype} = '';
+			$ctx->{badcontenttype} = '';
 			$ctx->{keepalives} = $c->keepalives;
 		}
 			
@@ -411,6 +429,19 @@ If you have problem with other content-type, use this directive. For example, as
 	ProxyHTMLExcludeContentType	(application\/vnd\.openxml|application\/vnd\..*text)
 
 this regex will prevent any MS Office XML or text document to be parsed.
+
+Some javascript libraries like JQuery are wrongly rewritten by ModProxyPerlHtml.
+The problem is that those javascript code include some code and regex that are
+detected as links and rewritten. The only way to fix that is to exclude those
+files from the URL rewritter by using the "ProxyHTMLExcludeUri" configuration
+directive. For example:
+
+	ProxyHTMLExcludeUri	jquery.min.js$
+	ProxyHTMLExcludeUri	^.*\/jquery-lib\/.*$
+
+Any downloaded URI that contains the given regex will be returned asis without
+rewritting. You can use this directive multiple time like above to match different
+cases.
 
 =head1 LIVE EXAMPLE
 
