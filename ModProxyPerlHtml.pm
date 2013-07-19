@@ -422,11 +422,11 @@ files. The result is that there could suffer of replacement inside and the file 
 to prevent this you have the ProxyHTMLExcludeContentType configuration directive to exclude certain
 content-type. Here is the default value:
  
-	ProxyHTMLExcludeContentType	(application\/vnd\.openxml)
+	PerlAddVar ProxyHTMLExcludeContentType	(application\/vnd\.openxml)
 
 If you have problem with other content-type, use this directive. For example, as follow:
 
-	ProxyHTMLExcludeContentType	(application\/vnd\.openxml|application\/vnd\..*text)
+	PerlAddVar ProxyHTMLExcludeContentType	(application\/vnd\.openxml|application\/vnd\..*text)
 
 this regex will prevent any MS Office XML or text document to be parsed.
 
@@ -436,8 +436,8 @@ detected as links and rewritten. The only way to fix that is to exclude those
 files from the URL rewritter by using the "ProxyHTMLExcludeUri" configuration
 directive. For example:
 
-	ProxyHTMLExcludeUri	jquery.min.js$
-	ProxyHTMLExcludeUri	^.*\/jquery-lib\/.*$
+	PerlAddVar ProxyHTMLExcludeUri	jquery.min.js$
+	PerlAddVar ProxyHTMLExcludeUri	^.*\/jquery-lib\/.*$
 
 Any downloaded URI that contains the given regex will be returned asis without
 rewritting. You can use this directive multiple time like above to match different
