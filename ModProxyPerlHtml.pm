@@ -3,7 +3,7 @@
 # Name     : ModProxyPerlHtml.pm
 # Language : perl 5
 # Authors  : Gilles Darold, gilles at darold dot net
-# Copyright: Copyright (c) 2005-2012: Gilles Darold - All rights reserved -
+# Copyright: Copyright (c) 2005-2013: Gilles Darold - All rights reserved -
 # Description : This mod_perl2 module is a replacement for mod_proxy_html.c
 #		with far better URL HTML rewriting.
 # Usage    : See documentation in this file with perldoc.
@@ -116,12 +116,12 @@ sub handler
 		my $ct = $f->r->headers_out->{'Content-type'} || '';
 
 		# Only proceed URLs that are not excluded from rewritter
-		if ( ($#{$ctx->{excluded}} >= 0) && !grep($parsed_uri =~ /$_/i, @{$ctx->{excluded}}) ) {
+		if ( ($#{$ctx->{excluded}} == -1) || !grep($parsed_uri =~ /$_/i, @{$ctx->{excluded}}) ) {
 
 			# if Accept-Encoding: gzip,deflate try to uncompress
 			if ( ($c_encoding =~ /gzip|deflate/) && ($ct =~ /$ctx->{contenttype}/is) && ($ct !~ /$ctx->{badcontenttype}/is) ) {
 				if ($debug) {
-					Apache2::ServerRec::warn("[ModProxyPerlHtml] Uncompressing $ct, Content-Encoding: $c_encoding\n");
+					Apache2::ServerRec::warn("[ModProxyPerlHtml] Uncompressing $ct, Content-Encoding: $c_encoding");
 				}
 				use IO::Uncompress::AnyInflate qw(anyinflate $AnyInflateError) ;
 				my $output = '';
@@ -142,7 +142,7 @@ sub handler
 					my ($match, $substitute) = split(/[\s\t]+/, $p, 2);
 					if ($refresh =~ s#([^\/:])$match#$1$substitute#) {
 						if ($debug) {
-							Apache2::ServerRec::warn("[ModProxyPerlHtml] Refresh header match '$match', substituted by: /$substitute/\n");
+							Apache2::ServerRec::warn("[ModProxyPerlHtml] Refresh header match '$match', substituted by: /$substitute/");
 						}
 					}
 				}
@@ -156,7 +156,7 @@ sub handler
 					my ($match, $substitute) = split(/[\s\t]+/, $p, 2);
 					if ($referer =~ s#([^\/:])$match#$1$substitute#) {
 						if ($debug) {
-							Apache2::ServerRec::warn("[ModProxyPerlHtml] Referer header match '$match', substituted by: /$substitute/\n");
+							Apache2::ServerRec::warn("[ModProxyPerlHtml] Referer header match '$match', substituted by: /$substitute/");
 						}
 					}
 				}
@@ -166,7 +166,7 @@ sub handler
 			# Only parse content that should have hyperlinks to rewrite
 			if ( ($content_type =~ /$ctx->{contenttype}/is) && ($content_type !~ /$ctx->{badcontenttype}/is) ) {
 				if ($debug) {
-					Apache2::ServerRec::warn("[ModProxyPerlHtml] Content-type '$content_type' match: /$ctx->{contenttype}/is\n");
+					Apache2::ServerRec::warn("[ModProxyPerlHtml] Content-type '$content_type' match: /$ctx->{contenttype}/is");
 				}
 				# Replace links if pattern match
 				foreach my $p (@{$ctx->{pattern}}) {
@@ -184,7 +184,7 @@ sub handler
 			# Compress again data if require
 			if (($a_encoding =~ /gzip|deflate/) && ($c_encoding =~ /gzip|deflate/)) {
 				if ($debug) {
-					Apache2::ServerRec::warn("[ModProxyPerlHtml] Compressing output as Content-Encoding: $c_encoding\n");
+					Apache2::ServerRec::warn("[ModProxyPerlHtml] Compressing output as Content-Encoding: $c_encoding");
 				}
 				if ($c_encoding =~ /gzip/) {
 					use IO::Compress::Gzip qw(gzip $GzipError) ;
@@ -208,7 +208,7 @@ sub handler
 		my $c = $f->c;
 		if ($c->keepalive == Apache2::Const::CONN_KEEPALIVE && $ctx->{data} && $c->keepalives > $ctx->{keepalives}) {
 			if ($debug) {
-				Apache2::ServerRec::warn("[ModProxyPerlHtml] Cleaning context for keep alive request\n");
+				Apache2::ServerRec::warn("[ModProxyPerlHtml] Cleaning context for keep alive request");
 			}
 			$ctx->{data} = '';
 			$ctx->{pattern} = ();
@@ -362,6 +362,10 @@ as follow:
     PerlInputFilterHandler Apache2::ModProxyPerlHtml
     PerlOutputFilterHandler Apache2::ModProxyPerlHtml
     SetHandler perl-script
+    # Use line below iand comment line above if you experience error:
+    # "Attempt to serve directory". The reason is that with SetHandler
+    # DirectoryIndex is not working 
+    # AddHandler perl-script *
     PerlSetVar ProxyHTMLVerbose "On"
     LogLevel Info
 
@@ -458,6 +462,10 @@ to internal applications:
     PerlInputFilterHandler Apache2::ModProxyPerlHtml
     PerlOutputFilterHandler Apache2::ModProxyPerlHtml
     SetHandler perl-script
+    # Use line below iand comment line above if you experience error:
+    # "Attempt to serve directory". The reason is that with SetHandler
+    # DirectoryIndex is not working 
+    # AddHandler perl-script *
     PerlSetVar ProxyHTMLVerbose "On"
     LogLevel Info
 
@@ -516,7 +524,7 @@ requests.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2012 - Gilles Darold
+Copyright (c) 2005-2013 - Gilles Darold
 
 All rights reserved.  This program is free software; you may redistribute
 it and/or modify it under the same terms as Perl itself.
