@@ -286,7 +286,8 @@ sub rewrite_content
 	$/ = '';
 
 	# Rewrite things in code (case sensitive)
-	$$data =~ s/$pattern/$replacement/g;
+	$replacement = '"' . $replacement . '"';
+	$$data =~ s/$pattern/$replacement/eeg;
 
 	$/ = $old_terminator;
 
