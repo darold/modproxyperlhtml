@@ -1,3 +1,16 @@
+28 Jul 2013 - Version 3.6
+
+	- Make replace pattern an evalable expression so that you can use $1 in
+	  replacement pattern with ProxyHTMLRewrite. Thanks to Roberto Majadas
+	  for the report.
+	- Update documentation about AddHandler vs SetHandler to avoid error
+	  "Attempt to serve directory", with SetHandler DirectoryIndex is not
+	  working any more. Thanks to Brad Robertson for the report.
+	- Add PerlAddVar before examples in documentation.
+	- Add new directive ProxyHtmlExcludeUri to allow URIs to be excluded
+	  from any rewritting. This is to be used to fix some weird replacements
+	  in javascript library. Thanks to Brad Robertson for the report.
+
 11 Dec 2012 - Version 3.5
 
 	- Fix documentation about ProxyHTMLContentType, PerlAddVar was missing.

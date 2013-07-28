@@ -29,7 +29,7 @@ use Apache2::ServerRec;
 use Apache2::URI;
 
 
-$Apache2::ModProxyPerlHtml::VERSION = '3.5';
+$Apache2::ModProxyPerlHtml::VERSION = '3.6';
 
 
 %Apache2::ModProxyPerlHtml::linkElements = (
