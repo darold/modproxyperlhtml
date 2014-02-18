@@ -298,6 +298,10 @@ sub rewrite_content
 
 __END__
 
+=head1 NAME
+
+Apache2::ModProxyPerlHtml - rewrite HTTP headers and HTML links for reverse proxy usage
+
 =head1 DESCRIPTION
 
 Apache2::ModProxyPerlHtml is the most advanced Apache output filter to rewrite
@@ -305,9 +309,9 @@ HTTP headers and HTML links for reverse proxy usage. It is written in Perl and
 exceeds all mod_proxy_html.c limitations without performance lost.
 
 Apache2::ModProxyPerlHtml is very simple and has far better parsing/replacement
-of URL than the original C code. It also support meta tag, CSS, and javascript
-URL rewriting and can be use with compressed HTTP. You can now replace any code
-by other, like changing images name or anything else. mod_proxy_html can't do
+of URL than the original C code. It also supports meta tag, CSS, and javascript
+URL rewriting and can be used with compressed HTTP. You can now replace any code
+by other, like changing image names or anything else. mod_proxy_html can't do
 all of that. Since release 3.x ModProxyPerlHtml is also able to rewrite HTTP
 headers with Refresh url redirection and Referer. 
 
@@ -322,7 +326,7 @@ The replacement capability concern only the following HTTP content type:
 
 other kind of file, will be left untouched (or see ProxyHTMLContentType and ProxyHTMLExcludeContentType).
 
-=head1 AVAIBILITY
+=head1 AVAILIBILITY
 
 You can get the latest version of Apache2::ModProxyPerlHtml from CPAN
 (http://search.cpan.org/).
