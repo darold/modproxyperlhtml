@@ -298,6 +298,10 @@ sub rewrite_content
 
 __END__
 
+=head1 NAME
+
+Apache2::ModProxyPerlHtml - rewrite HTTP headers and HTML links for reverse proxy usage
+
 =head1 DESCRIPTION
 
 Apache2::ModProxyPerlHtml is the most advanced Apache output filter to rewrite
