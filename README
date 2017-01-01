@@ -1,3 +1,7 @@
+NAME
+    Apache2::ModProxyPerlHtml - rewrite HTTP headers and HTML links for
+    reverse proxy usage
+
 DESCRIPTION
     Apache2::ModProxyPerlHtml is the most advanced Apache output filter to
     rewrite HTTP headers and HTML links for reverse proxy usage. It is
@@ -5,10 +9,10 @@ DESCRIPTION
     performance lost.
 
     Apache2::ModProxyPerlHtml is very simple and has far better
-    parsing/replacement of URL than the original C code. It also support
-    meta tag, CSS, and javascript URL rewriting and can be use with
+    parsing/replacement of URL than the original C code. It also supports
+    meta tag, CSS, and javascript URL rewriting and can be used with
     compressed HTTP. You can now replace any code by other, like changing
-    images name or anything else. mod_proxy_html can't do all of that. Since
+    image names or anything else. mod_proxy_html can't do all of that. Since
     release 3.x ModProxyPerlHtml is also able to rewrite HTTP headers with
     Refresh url redirection and Referer.
 
@@ -24,7 +28,7 @@ DESCRIPTION
     other kind of file, will be left untouched (or see ProxyHTMLContentType
     and ProxyHTMLExcludeContentType).
 
-AVAIBILITY
+AVAILIBILITY
     You can get the latest version of Apache2::ModProxyPerlHtml from CPAN
     (http://search.cpan.org/).
 
@@ -221,6 +225,23 @@ LIVE EXAMPLE
     to all authentified users through their own Internet acces. There's also
     one acces to an Intranet portal that have links to the webcal and
     webmail application. Those links must be rewritten twice to works.
+
+ROT13 obfuscation
+    Some links can be obfucated to be hidden from google or other robots. To
+    enable encode/decode of those links you can use the ProxyHTMLRot13Links
+    directive as follow:
+
+            PerlAddVar ProxyHTMLRot13Links All
+
+    All links in the page will be decoded before being rewritten and
+    re-encoded.
+
+    If obfuscation occurs on some attributs only you can set the value as a
+    pair of element:attribut where the decoding/encoding must be applied.
+    For example:
+
+            PerlAddVar ProxyHTMLRot13Links a:data-href
+            PerlAddVar ProxyHTMLRot13Links a:href
 
 BUGS
     Apache2::ModProxyPerlHtml is still under development and is pretty

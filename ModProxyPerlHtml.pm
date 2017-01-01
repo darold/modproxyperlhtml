@@ -85,6 +85,7 @@ sub handler
 		my $badcontenttype = $f->r->dir_config->get('ProxyHTMLExcludeContentType');
 		$badcontenttype ||= '(application\/vnd\.openxml)';
 		my @exclude = $f->r->dir_config->get('ProxyHTMLExcludeUri');
+		my @obfuscation = $f->r->dir_config->get('ProxyHTMLRot13Links');
 
 		my $ct = $f->ctx;
 		$ct->{data} = '';
@@ -98,6 +99,15 @@ sub handler
 		$ct->{badcontenttype} = $badcontenttype;
 		foreach my $u (@exclude) {
 			push(@{$ct->{excluded}}, $u);
+		}
+		foreach my $o (@obfuscation) {
+			my ($elt, $attr) = split(/:/, $o);
+			if (uc($elt) eq 'ALL') {
+				$ct->{rot13elements} = 'All';
+				last;
+			} else {
+				$ct->{rot13elements}->{$elt} = $attr;
+			}
 		}
 		$f->ctx($ct);
 	}
@@ -171,8 +181,7 @@ sub handler
 				# Replace links if pattern match
 				foreach my $p (@{$ctx->{pattern}}) {
 					my ($match, $substitute) = split(/[\s\t]+/, $p, 2);
-					&link_replacement(\$ctx->{data}, $match, $substitute, $parsed_uri);
-
+					&link_replacement(\$ctx->{data}, $match, $substitute, $parsed_uri, $ctx->{rot13elements});
 				}
 				# Rewrite code if rewrite pattern match
 				foreach my $p (@{$ctx->{rewrite}}) {
@@ -214,6 +223,7 @@ sub handler
 			$ctx->{pattern} = ();
 			$ctx->{rewrite} = ();
 			$ctx->{excluded} = ();
+			$ctx->{rot13elements} = ();
 			$ctx->{contenttype} = '';
 			$ctx->{badcontenttype} = '';
 			$ctx->{keepalives} = $c->keepalives;
@@ -226,14 +236,40 @@ sub handler
 
 sub link_replacement
 {
-	my ($data, $pattern, $replacement, $uri) = @_;
+	my ($data, $pattern, $replacement, $uri, $rot13elements) = @_;
 
 	return if (!$$data);
 
 	my $old_terminator = $/;
 	$/ = '';
 	my @TODOS = ();
+	my @ROT13TODOS = ();
 	my $i = 0;
+
+	# Detect parts that need to be deobfuscated before replacement
+	if ($rot13elements ne 'All') {
+		foreach my $tag (keys %{$rot13elements}) {
+			while ($$data =~ s/(<$tag[\t\s]+[^>]*\b$rot13elements->{$tag}=['"]*)([^'"\s>]+)/ROT13REPLACE_$i\$\$/i) {
+				push(@ROT13TODOS, "$1ROT13:$2:ROT13$3");
+				$i++;
+			}
+		}
+	} elsif ($rot13elements eq 'All') {
+		foreach my $tag (keys %Apache2::ModProxyPerlHtml::linkElements) {
+			next if ($$data !~ /<$tag/i);
+			foreach my $attr (@{$Apache2::ModProxyPerlHtml::linkElements{$tag}}) {
+				while ($$data =~ s/(<$tag[\t\s]+[^>]*\b$rot13elements->{$tag}=['"]*)([^'"\s>]+)/ROT13REPLACE_$i\$\$/i) {
+					push(@ROT13TODOS, "$1ROT13:$2:ROT13$3");
+					$i++;
+				}
+			}
+		}
+	}
+	# Decode ROT13 links now
+	for ($i = 0; $i <= $#ROT13TODOS; $i++) {
+		$$data =~ s/ROT13REPLACE_$i\$\$/rot13_decode($ROT13TODOS[$i])/ix;
+	}
+
 	# Replace standard link into attributes of any element
 	foreach my $tag (keys %Apache2::ModProxyPerlHtml::linkElements) {
 		next if ($$data !~ /<$tag/i);
@@ -282,8 +318,32 @@ sub link_replacement
 		$$data =~ s/NEEDREPLACE_$i\$\$/$TODOS[$i]/i;
 	}
 
-	$/ = $old_terminator;
+	# Detect parts that need to be obfuscated after replacement
+	if ($rot13elements ne 'All') {
+		foreach my $tag (keys %{$rot13elements}) {
+			while ($$data =~ s/(<$tag[\t\s]+[^>]*\b$rot13elements->{$tag}=['"]*)([^'"\s>]+)/ROT13REPLACE_$i\$\$/i) {
+				push(@ROT13TODOS, "$1ROT13:$2:ROT13$3");
+				$i++;
+			}
+		}
+	} elsif ($rot13elements eq 'All') {
+		foreach my $tag (keys %Apache2::ModProxyPerlHtml::linkElements) {
+			next if ($$data !~ /<$tag/i);
+			foreach my $attr (@{$Apache2::ModProxyPerlHtml::linkElements{$tag}}) {
+				while ($$data =~ s/(<$tag[\t\s]+[^>]*\b$rot13elements->{$tag}=['"]*)([^'"\s>]+)/ROT13REPLACE_$i\$\$/i) {
+					push(@ROT13TODOS, "$1ROT13:$2:ROT13$3");
+					$i++;
+				}
+			}
+		}
+	}
 
+	# Encode ROT13 links now
+	for ($i = 0; $i <= $#ROT13TODOS; $i++) {
+		$$data =~ s/ROT13REPLACE_$i\$\$/rot13_encode($ROT13TODOS[$i])/ix;
+	}
+
+	$/ = $old_terminator;
 }
 
 sub rewrite_content
@@ -301,6 +361,24 @@ sub rewrite_content
 
 	$/ = $old_terminator;
 
+}
+
+sub rot13_decode
+{
+	my $str = shift;
+
+        $str =~ tr/nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM/abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/;
+
+	return $str;
+}
+
+sub rot13_encode
+{
+	my $str = shift;
+
+        $str =~ tr/abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM/;
+
+	return $str;
 }
 
 
@@ -530,6 +608,22 @@ This gives access two a webmail and webcal application hosted internally to all
 authentified users through their own Internet acces. There's also one acces to
 an Intranet portal that have links to the webcal and webmail application. Those
 links must be rewritten twice to works.
+
+=head1 ROT13 obfuscation
+
+Some links can be obfucated to be hidden from google or other robots. To enable
+encode/decode of those links you can use the ProxyHTMLRot13Links directive as
+follow:
+
+	PerlAddVar ProxyHTMLRot13Links All
+
+All links in the page will be decoded before being rewritten and re-encoded.
+
+If obfuscation occurs on some attributs only you can set the value as a pair
+of element:attribut where the decoding/encoding must be applied. For example:
+
+	PerlAddVar ProxyHTMLRot13Links a:data-href
+	PerlAddVar ProxyHTMLRot13Links a:href
 
 =head1 BUGS 
 
