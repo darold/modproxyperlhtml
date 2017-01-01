@@ -246,7 +246,7 @@ sub link_replacement
 		}
 	}
 	# Replace all links in javascript code
-	$$data =~ s/([^\\]['"])($replacement|$pattern)([^'"]*['"])/$1$replacement$3/ig;
+	$$data =~ s/([^\\\/]['"])($replacement|$pattern)([^'"]*['"])/$1$replacement$3/ig;
 	# Some use escaped quote - Do you have better regexp ?
 	$$data =~ s/(\&quot;)($replacement|$pattern)(.*\&quot;)/$1$replacement$3/ig;
 
