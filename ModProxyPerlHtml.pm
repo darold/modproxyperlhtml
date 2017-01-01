@@ -3,7 +3,7 @@
 # Name     : ModProxyPerlHtml.pm
 # Language : perl 5
 # Authors  : Gilles Darold, gilles at darold dot net
-# Copyright: Copyright (c) 2005-2013: Gilles Darold - All rights reserved -
+# Copyright: Copyright (c) 2005-2017: Gilles Darold - All rights reserved -
 # Description : This mod_perl2 module is a replacement for mod_proxy_html.c
 #		with far better URL HTML rewriting.
 # Usage    : See documentation in this file with perldoc.
@@ -238,15 +238,26 @@ sub link_replacement
 	foreach my $tag (keys %Apache2::ModProxyPerlHtml::linkElements) {
 		next if ($$data !~ /<$tag/i);
 		foreach my $attr (@{$Apache2::ModProxyPerlHtml::linkElements{$tag}}) {
-			while ($$data =~ s/(<$tag[\t\s]+[^>]*\b$attr=['"]*)($replacement|$pattern)([^'"\s>]+)/NEEDREPLACE_$i$$/i) {
+			while ($$data =~ s/(<$tag[\t\s]+[^>]*\b$attr=['"]*)($replacement|$pattern)([^'"\s>]+)/NEEDREPLACE_$i\$\$/i) {
 				push(@TODOS, "$1$replacement$3");
 				$i++;
 			}
 		
 		}
 	}
-	# Replace all links in javascript code
+	# Replace all links in javascript code after hiding javascript replacement pattern
+	my %replace_fct = ();
+	while ($$data =~ s/(\.replace\([^,]+,[^\)]+\))/\%\%REPLACE$i\%\%/) {
+		$replace_fct{$i} = $1;
+		$i++;
+	}
+
 	$$data =~ s/([^\\\/]['"])($replacement|$pattern)([^'"]*['"])/$1$replacement$3/ig;
+
+	foreach my $id (keys %replace_fct) {
+		$$data =~ s/\%\%REPLACE$id\%\%/$replace_fct{$id}/;
+	}
+
 	# Some use escaped quote - Do you have better regexp ?
 	$$data =~ s/(\&quot;)($replacement|$pattern)(.*\&quot;)/$1$replacement$3/ig;
 
@@ -268,8 +279,7 @@ sub link_replacement
 	
 	# Replace todos now
 	for ($i = 0; $i <= $#TODOS; $i++) {
-
-		$$data =~ s/NEEDREPLACE_$i$$/$TODOS[$i]/i;
+		$$data =~ s/NEEDREPLACE_$i\$\$/$TODOS[$i]/i;
 	}
 
 	$/ = $old_terminator;
@@ -529,7 +539,7 @@ requests.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2013 - Gilles Darold
+Copyright (c) 2005-2017 - Gilles Darold
 
 All rights reserved.  This program is free software; you may redistribute
 it and/or modify it under the same terms as Perl itself.
