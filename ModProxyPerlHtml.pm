@@ -242,15 +242,15 @@ sub link_replacement
 
 	my $old_terminator = $/;
 	$/ = '';
-	my @TODOS = ();
-	my @ROT13TODOS = ();
+	my %TODOS = ();
+	my %ROT13TODOS = ();
 	my $i = 0;
 
 	# Detect parts that need to be deobfuscated before replacement
 	if ($rot13elements ne 'All') {
 		foreach my $tag (keys %{$rot13elements}) {
-			while ($$data =~ s/(<$tag[\t\s]+[^>]*\b$rot13elements->{$tag}=['"]*)([^'"\s>]+)/ROT13REPLACE_$i\$\$/i) {
-				push(@ROT13TODOS, "$1ROT13:$2:ROT13$3");
+			while ($$data =~ s/(<$tag\s+[^>]*\b$rot13elements->{$tag}=['"\s]*)([^'"\s>]+)([^>]*>)/ROT13REPLACE_$i\$\$/i) {
+				$ROT13TODOS{$i} = "$1ROT13$2ROT13$3";
 				$i++;
 			}
 		}
@@ -258,27 +258,27 @@ sub link_replacement
 		foreach my $tag (keys %Apache2::ModProxyPerlHtml::linkElements) {
 			next if ($$data !~ /<$tag/i);
 			foreach my $attr (@{$Apache2::ModProxyPerlHtml::linkElements{$tag}}) {
-				while ($$data =~ s/(<$tag[\t\s]+[^>]*\b$rot13elements->{$tag}=['"]*)([^'"\s>]+)/ROT13REPLACE_$i\$\$/i) {
-					push(@ROT13TODOS, "$1ROT13:$2:ROT13$3");
+				while ($$data =~ s/(<$tag\s+[^>]*\b$attr=['"\s]*)([^'"\s>]+)([^>]*>)/ROT13REPLACE_$i\$\$/i) {
+					$ROT13TODOS{$i} = "$1ROT13$2ROT13$3";
 					$i++;
 				}
 			}
 		}
 	}
 	# Decode ROT13 links now
-	for ($i = 0; $i <= $#ROT13TODOS; $i++) {
-		$$data =~ s/ROT13REPLACE_$i\$\$/rot13_decode($ROT13TODOS[$i])/ix;
+	foreach my $k (keys %ROT13TODOS) {
+		my $repl = rot13_decode($ROT13TODOS{$k});
+		$$data =~ s/ROT13REPLACE_$k\$\$/$repl/;
 	}
 
 	# Replace standard link into attributes of any element
 	foreach my $tag (keys %Apache2::ModProxyPerlHtml::linkElements) {
 		next if ($$data !~ /<$tag/i);
 		foreach my $attr (@{$Apache2::ModProxyPerlHtml::linkElements{$tag}}) {
-			while ($$data =~ s/(<$tag[\t\s]+[^>]*\b$attr=['"]*)($replacement|$pattern)([^'"\s>]+)/NEEDREPLACE_$i\$\$/i) {
-				push(@TODOS, "$1$replacement$3");
+			while ($$data =~ s/(<$tag[\t\s]+[^>]*\b$attr=['"]*)($replacement|$pattern)([^'"\s>]+)/\$\$NEEDREPLACE$i\$\$/i) {
+				$TODOS{$i} = "$1$replacement$3";
 				$i++;
 			}
-		
 		}
 	}
 	# Replace all links in javascript code after hiding javascript replacement pattern
@@ -290,9 +290,7 @@ sub link_replacement
 
 	$$data =~ s/([^\\\/]['"])($replacement|$pattern)([^'"]*['"])/$1$replacement$3/ig;
 
-	foreach my $id (keys %replace_fct) {
-		$$data =~ s/\%\%REPLACE$id\%\%/$replace_fct{$id}/;
-	}
+	$$data =~ s/\%\%REPLACE(\d+)\%\%/$replace_fct{$1}/g;
 
 	# Some use escaped quote - Do you have better regexp ?
 	$$data =~ s/(\&quot;)($replacement|$pattern)(.*\&quot;)/$1$replacement$3/ig;
@@ -314,15 +312,13 @@ sub link_replacement
 	$$data =~ s/($replacement|$pattern)>/\/>/ig;
 	
 	# Replace todos now
-	for ($i = 0; $i <= $#TODOS; $i++) {
-		$$data =~ s/NEEDREPLACE_$i\$\$/$TODOS[$i]/i;
-	}
+	$$data =~ s/\$\$NEEDREPLACE(\d+)\$\$/$TODOS{$1}/g;
 
 	# Detect parts that need to be obfuscated after replacement
 	if ($rot13elements ne 'All') {
 		foreach my $tag (keys %{$rot13elements}) {
-			while ($$data =~ s/(<$tag[\t\s]+[^>]*\b$rot13elements->{$tag}=['"]*)([^'"\s>]+)/ROT13REPLACE_$i\$\$/i) {
-				push(@ROT13TODOS, "$1ROT13:$2:ROT13$3");
+			while ($$data =~ s/(<$tag\s+[^>]*\b$rot13elements->{$tag}=['"\s]*)([^'"\s>]+)([^>]*>)/ROT13REPLACE_$i\$\$/i) {
+				$ROT13TODOS{$i} = "$1ROT13$2ROT13$3";
 				$i++;
 			}
 		}
@@ -330,8 +326,8 @@ sub link_replacement
 		foreach my $tag (keys %Apache2::ModProxyPerlHtml::linkElements) {
 			next if ($$data !~ /<$tag/i);
 			foreach my $attr (@{$Apache2::ModProxyPerlHtml::linkElements{$tag}}) {
-				while ($$data =~ s/(<$tag[\t\s]+[^>]*\b$rot13elements->{$tag}=['"]*)([^'"\s>]+)/ROT13REPLACE_$i\$\$/i) {
-					push(@ROT13TODOS, "$1ROT13:$2:ROT13$3");
+				while ($$data =~ s/(<$tag\s+[^>]*\b$attr=['"\s]*)([^'"\s>]+)([^>]*>)/ROT13REPLACE_$i\$\$/i) {
+					$ROT13TODOS{$i} = "$1ROT13$2ROT13$3";
 					$i++;
 				}
 			}
@@ -339,8 +335,9 @@ sub link_replacement
 	}
 
 	# Encode ROT13 links now
-	for ($i = 0; $i <= $#ROT13TODOS; $i++) {
-		$$data =~ s/ROT13REPLACE_$i\$\$/rot13_encode($ROT13TODOS[$i])/ix;
+	foreach my $k (keys %ROT13TODOS) {
+		my $repl = rot13_encode($ROT13TODOS{$k});
+		$$data =~ s/ROT13REPLACE_$k\$\$/$repl/;
 	}
 
 	$/ = $old_terminator;
@@ -367,18 +364,20 @@ sub rot13_decode
 {
 	my $str = shift;
 
-        $str =~ tr/nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM/abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/;
+	my @parts = split(/ROT13/, $str);
+        $parts[1] =~ tr/nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM/abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/;
 
-	return $str;
+	return join('', @parts);
 }
 
 sub rot13_encode
 {
 	my $str = shift;
 
-        $str =~ tr/abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM/;
+	my @parts = split(/ROT13/, $str);
+        $parts[1] =~ tr/abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ/nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM/;
 
-	return $str;
+	return join('', @parts);
 }
 
 
