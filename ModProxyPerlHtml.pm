@@ -3,8 +3,8 @@
 # Name     : ModProxyPerlHtml.pm
 # Language : perl 5
 # Authors  : Gilles Darold, gilles at darold dot net
-# Copyright: Copyright (c) 2005-2017: Gilles Darold - All rights reserved -
-# Description : This mod_perl2 module is a replacement for mod_proxy_html.c
+# Copyright: Copyright (c) 2005-2020: Gilles Darold - All rights reserved -
+# Description : This mod_perl module is a replacement for mod_proxy_html.c
 #		with far better URL HTML rewriting.
 # Usage    : See documentation in this file with perldoc.
 #------------------------------------------------------------------------------
@@ -29,7 +29,7 @@ use Apache2::ServerRec;
 use Apache2::URI;
 
 
-$Apache2::ModProxyPerlHtml::VERSION = '3.6';
+$Apache2::ModProxyPerlHtml::VERSION = '4.0';
 
 
 %Apache2::ModProxyPerlHtml::linkElements = (
@@ -420,11 +420,64 @@ You can get the latest version of Apache2::ModProxyPerlHtml from CPAN
 
 =head1 PREREQUISITES
 
-You must have Apache2, mod_perl2 and IO::Compress::Zlib perl modules installed
-on your system.
+You must have Apache2, mod_proxy, mod_perl and IO::Compress::Zlib perl modules
+installed on your system.
 
-You also need to install the mod_proxy Apache modules. See documentation at
-http://httpd.apache.org/docs/2.0/mod/mod_proxy.html
+=head2 Installation on RH/CentOs
+
+Install Apache2, apxs, the Epel repository (for mod_perl install) and the
+Perl Module IO::Compress:
+ 
+	yum install httpd httpd-devel
+	yum install epel-release
+	yum install perl-IO-Compress
+
+Install ModPerl, minimal version to work with Apache 2.4 is 2.0.10:
+
+	yum list | grep mod_perl
+	yum --enablerepo=epel -y install mod_perl mod_perl-devel
+
+Enable mod_perl:
+
+	a2enconf mod_perl
+	systemctl reload apache2
+
+The Apache module mod_ssl is not available by default, install it:
+
+        yum install mod_ssl
+
+If the firewall is enabled you might want to allow access to the Apache services
+
+	firewall-cmd --permanent --add-service=http
+	firewall-cmd --permanent --add-service=https
+	firewall-cmd --reload
+
+
+=head2 Installation on Debian/Ubuntu
+
+To have Apache2 server and apxs command:
+
+	apt install apache2 apache2-dev
+
+ModPerl can be installed using:
+
+	apt install libapache2-mod-perl2 libapache2-mod-perl2-dev
+
+ModProxyPerlHtml need additional Perl module IO::Compress:
+
+	apt install libio-compress-perl
+
+Enable mod_proxy:
+
+	a2enmod proxy
+	a2enmod proxy_http
+	a2enmod proxy_ftp
+	a2enmod proxy_connect
+
+Enable the configuration and mod_perl:
+
+	a2enmod perl
+
 
 =head1 INSTALLATION
 
@@ -433,19 +486,9 @@ http://httpd.apache.org/docs/2.0/mod/mod_proxy.html
 
 =head1 APACHE CONFIGURATION
 
-In your Apache configuration file you have to load the following DSO modules:
-
-    LoadModule deflate_module modules/mod_deflate.so
-    LoadModule headers_module modules/mod_headers.so
-    LoadModule proxy_module modules/mod_proxy.so
-    LoadModule proxy_connect_module modules/mod_proxy_connect.so
-    LoadModule proxy_ftp_module modules/mod_proxy_ftp.so
-    LoadModule proxy_http_module modules/mod_proxy_http.so
-    LoadModule ssl_module modules/mod_ssl.so
-    LoadModule perl_module  modules/mod_perl.so
-
-Then in your Apache site or virtualhost configuration file use ModProxyPerlHtml*
-as follow:
+On Debian/Ubuntu set the following configuration into the VirtualHost section
+of files /etc/apache2/sites-available/default-ssl.conf and /etc/apache2/sites-available/000-default.conf.
+On CentOS/RedHat add it to /etc/httpd/conf.d/vhost.conf.
 
     ProxyRequests Off
     ProxyPreserveHost Off
@@ -454,7 +497,7 @@ as follow:
     PerlInputFilterHandler Apache2::ModProxyPerlHtml
     PerlOutputFilterHandler Apache2::ModProxyPerlHtml
     SetHandler perl-script
-    # Use line below iand comment line above if you experience error:
+    # Use line below and comment line above if you experience error:
     # "Attempt to serve directory". The reason is that with SetHandler
     # DirectoryIndex is not working 
     # AddHandler perl-script *
@@ -632,7 +675,7 @@ requests.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2017 - Gilles Darold
+Copyright (c) 2005-2020 - Gilles Darold
 
 All rights reserved.  This program is free software; you may redistribute
 it and/or modify it under the same terms as Perl itself.
