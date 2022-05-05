@@ -247,24 +247,28 @@ sub link_replacement
 	my $i = 0;
 
 	# Detect parts that need to be deobfuscated before replacement
-	if ($rot13elements ne 'All') {
-		foreach my $tag (keys %{$rot13elements}) {
-			while ($$data =~ s/(<$tag\s+[^>]*\b$rot13elements->{$tag}=['"\s]*)([^'"\s>]+)([^>]*>)/ROT13REPLACE_$i\$\$/i) {
-				$ROT13TODOS{$i} = "$1ROT13$2ROT13$3";
-				$i++;
-			}
-		}
-	} elsif ($rot13elements eq 'All') {
-		foreach my $tag (keys %Apache2::ModProxyPerlHtml::linkElements) {
-			next if ($$data !~ /<$tag/i);
-			foreach my $attr (@{$Apache2::ModProxyPerlHtml::linkElements{$tag}}) {
-				while ($$data =~ s/(<$tag\s+[^>]*\b$attr=['"\s]*)([^'"\s>]+)([^>]*>)/ROT13REPLACE_$i\$\$/i) {
+	if (defined $rot13elements)
+	{
+		if ($rot13elements ne 'All') {
+			foreach my $tag (keys %{$rot13elements}) {
+				while ($$data =~ s/(<$tag\s+[^>]*\b$rot13elements->{$tag}=['"\s]*)([^'"\s>]+)([^>]*>)/ROT13REPLACE_$i\$\$/i) {
 					$ROT13TODOS{$i} = "$1ROT13$2ROT13$3";
 					$i++;
 				}
 			}
+		} elsif ($rot13elements eq 'All') {
+			foreach my $tag (keys %Apache2::ModProxyPerlHtml::linkElements) {
+				next if ($$data !~ /<$tag/i);
+				foreach my $attr (@{$Apache2::ModProxyPerlHtml::linkElements{$tag}}) {
+					while ($$data =~ s/(<$tag\s+[^>]*\b$attr=['"\s]*)([^'"\s>]+)([^>]*>)/ROT13REPLACE_$i\$\$/i) {
+						$ROT13TODOS{$i} = "$1ROT13$2ROT13$3";
+						$i++;
+					}
+				}
+			}
 		}
 	}
+
 	# Decode ROT13 links now
 	foreach my $k (keys %ROT13TODOS) {
 		my $repl = rot13_decode($ROT13TODOS{$k});
@@ -315,20 +319,23 @@ sub link_replacement
 	$$data =~ s/\$\$NEEDREPLACE(\d+)\$\$/$TODOS{$1}/g;
 
 	# Detect parts that need to be obfuscated after replacement
-	if ($rot13elements ne 'All') {
-		foreach my $tag (keys %{$rot13elements}) {
-			while ($$data =~ s/(<$tag\s+[^>]*\b$rot13elements->{$tag}=['"\s]*)([^'"\s>]+)([^>]*>)/ROT13REPLACE_$i\$\$/i) {
-				$ROT13TODOS{$i} = "$1ROT13$2ROT13$3";
-				$i++;
-			}
-		}
-	} elsif ($rot13elements eq 'All') {
-		foreach my $tag (keys %Apache2::ModProxyPerlHtml::linkElements) {
-			next if ($$data !~ /<$tag/i);
-			foreach my $attr (@{$Apache2::ModProxyPerlHtml::linkElements{$tag}}) {
-				while ($$data =~ s/(<$tag\s+[^>]*\b$attr=['"\s]*)([^'"\s>]+)([^>]*>)/ROT13REPLACE_$i\$\$/i) {
+	if (defined $rot13elements)
+	{
+		if ($rot13elements ne 'All') {
+			foreach my $tag (keys %{$rot13elements}) {
+				while ($$data =~ s/(<$tag\s+[^>]*\b$rot13elements->{$tag}=['"\s]*)([^'"\s>]+)([^>]*>)/ROT13REPLACE_$i\$\$/i) {
 					$ROT13TODOS{$i} = "$1ROT13$2ROT13$3";
 					$i++;
+				}
+			}
+		} elsif ($rot13elements eq 'All') {
+			foreach my $tag (keys %Apache2::ModProxyPerlHtml::linkElements) {
+				next if ($$data !~ /<$tag/i);
+				foreach my $attr (@{$Apache2::ModProxyPerlHtml::linkElements{$tag}}) {
+					while ($$data =~ s/(<$tag\s+[^>]*\b$attr=['"\s]*)([^'"\s>]+)([^>]*>)/ROT13REPLACE_$i\$\$/i) {
+						$ROT13TODOS{$i} = "$1ROT13$2ROT13$3";
+						$i++;
+					}
 				}
 			}
 		}
